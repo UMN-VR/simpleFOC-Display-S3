@@ -9,10 +9,10 @@ void setup_serial() {
 }
 
 void setup_display() {
-  setup_display_hardware();
   T_Display_S3.begin();
-  T_Display_S3.clear();
   T_Display_S3.println(F("Display initialized."));
+  // set brightness to 50%
+  T_Display_S3.setBrightness(128);
 }
 
 void setup_T_Display_S3() {

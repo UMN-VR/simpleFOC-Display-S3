@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include "display_hardware.h"
 #include "display_graphics.h"
-#include "display_text.h"
 
 // High-level setup functions
 void setup_serial();
