@@ -2,6 +2,7 @@
 
 FOCSharedState focState = {
     /*target_velocity=*/0.0f,
+    /*target_angle=*/0.0f,
     /*motor_enabled=*/true,
     /*fault_active=*/false,
 };
@@ -20,6 +21,13 @@ void writeTargetVelocityLocked(float velocity) {
     
 }
 
+void writeTargetAngleLocked(float angle) {
+  
+  focState.target_angle = angle;
+  focState.motor_enabled = kDebugKeepMotorEnabled || !focState.fault_active;
+    
+}
+
 void setFaultActiveLocked(bool active) {
   
   focState.fault_active = active;
@@ -27,6 +35,7 @@ void setFaultActiveLocked(bool active) {
     if (active) {
       focState.motor_enabled = false;
       focState.target_velocity = 0.0f;
+      focState.target_angle = 0.0f;
     } else {
       focState.motor_enabled = true;
     }

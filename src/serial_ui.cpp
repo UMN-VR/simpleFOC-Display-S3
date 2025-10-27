@@ -1,7 +1,9 @@
 #include "serial_ui.h"
 
 #include <Arduino.h>
+#include <SimpleFOC.h>
 
+#include "motor_config.h"
 #include "app_config.h"
 #include "foc_control.h"
 #include "display_graphics.h"
@@ -33,6 +35,8 @@ String serialCmdInputBuffer;
 constexpr size_t MAX_BUFFER_SIZE = 16; // Prevent buffer overflow
 }  // namespace
 
+void initCommandTable();
+
 void initSerialCommandProcessor() {
   serialCmdInputBuffer.reserve(MAX_BUFFER_SIZE);
   currentState = SerialState::S0_IDLE;
@@ -43,7 +47,7 @@ void printInvalidInputWarning() {
   T_Display_S3.println("Invalid input, available commands: tv<-100.0 to 100.0>, dvf, cl");
 }
 
-void processSerialInput() {
+void old_processSerialInput() {
   while (Serial.available() > 0) {
     
   char c = Serial.read();
@@ -205,4 +209,123 @@ void processSerialInput() {
         break;
     }
   }
+}
+
+// New command table implementation
+// Forward declarations
+void handleSetVelocity(const String& args);
+void handleSetPosition(const String& args);
+void handleModeVelocity(const String& args);
+void handleModePosition(const String& args);
+void handleDisplayFlip(const String& args);
+void handleClear(const String& args);
+void handleHelp(const String& args);
+
+struct SerialCommand {
+    const char* prefix;
+    const char* help;
+    void (*handler)(const String& args);
+};
+
+SerialCommand commandTable[] = {
+    {"tv", "Set target velocity: tv<value>", handleSetVelocity},
+    {"tp", "Set target position: tp<value>", handleSetPosition},
+    {"mv", "Switch to velocity mode: mv", handleModeVelocity},
+    {"mp", "Switch to position mode: mp", handleModePosition},
+    {"dvf", "Flip display: dvf", handleDisplayFlip},
+    {"cl", "Clear display: cl", handleClear},
+    {"help", "Show this help: help", handleHelp},
+};
+
+void handleSetVelocity(const String& args) {
+    if (args.length() == 0) {
+        T_Display_S3.println("[Error: No velocity value provided]");
+        return;
+    }
+    float requested_velocity = args.toFloat();
+    writeTargetVelocityLocked(requested_velocity);
+    T_Display_S3.print("tv=");
+    T_Display_S3.println(requested_velocity);
+}
+
+void handleSetPosition(const String& args) {
+    if (args.length() == 0) {
+        T_Display_S3.println("[Error: No position value provided]");
+        return;
+    }
+    float requested_position = args.toFloat();
+    writeTargetAngleLocked(requested_position);
+    T_Display_S3.print("tp=");
+    T_Display_S3.println(requested_position);
+}
+
+void handleModeVelocity(const String& args) {
+    powertrain0::bldc90kv2208.controller = MotionControlType::velocity;
+    T_Display_S3.println("[Mode switched to Velocity]");
+}
+
+void handleModePosition(const String& args) {
+    powertrain0::bldc90kv2208.controller = MotionControlType::angle;
+    T_Display_S3.println("[Mode switched to Position]");
+}
+
+void handleDisplayFlip(const String& args) {
+    uint8_t rot = T_Display_S3.getRotation();
+    T_Display_S3.setRotation((rot + 2) % 4);
+    T_Display_S3.clear();
+    T_Display_S3.println("[Display flipped]");
+}
+
+void handleClear(const String& args) {
+    T_Display_S3.clear();
+    T_Display_S3.println("[Display cleared]");
+}
+
+void handleHelp(const String& args) {
+    T_Display_S3.println("Available commands:");
+    for (const auto& cmd : commandTable) {
+        T_Display_S3.print(cmd.prefix);
+        T_Display_S3.print(": ");
+        T_Display_S3.println(cmd.help);
+    }
+}
+
+// Initialize handlers
+void initCommandTable() {
+    // Handlers are now set directly in the table
+}
+
+void processSerialInput() {
+    static String inputBuffer;
+    while (Serial.available()) {
+        char c = Serial.read();
+        T_Display_S3.noteSerialReceived();
+        if (c == '\n' || c == '\r') {
+            inputBuffer.trim();
+            if (!inputBuffer.isEmpty()) {
+                String lowerInput = inputBuffer;
+                lowerInput.toLowerCase();
+                // Find the command by prefix matching (longest match)
+                SerialCommand* matchedCmd = nullptr;
+                size_t maxLen = 0;
+                for (auto& entry : commandTable) {
+                    size_t len = strlen(entry.prefix);
+                    if (len > maxLen && lowerInput.startsWith(entry.prefix)) {
+                        maxLen = len;
+                        matchedCmd = &entry;
+                    }
+                }
+                if (matchedCmd) {
+                    String args = inputBuffer.substring(maxLen);
+                    matchedCmd->handler(args);
+                } else {
+                    T_Display_S3.println("Unknown command. Type 'help' for list.");
+                }
+            }
+            inputBuffer = "";
+        } else {
+            inputBuffer += c;
+            T_Display_S3.print(c); // Echo the character
+        }
+    }
 }

@@ -24,6 +24,9 @@ class T_Display_S3_Class : public lgfx::LGFX_Device {
   DisplayTheme theme() const;
   uint16_t foregroundColor() const;
   uint16_t backgroundColor() const;
+  void drawAngleIndicator(float angle_rad, bool isFailed = false);
+  void drawWarningEmoji(int x, int y);
+  void drawCheckEmoji(int x, int y);
 
   // Override print methods to mirror to Serial
   size_t write(uint8_t c) override;

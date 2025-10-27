@@ -17,29 +17,32 @@ void setupFaultDetection() {
 
 bool checkAndHandleMotorFault() {
   // Check for motor fault (active low)
-  const bool fault_active = digitalRead(powertrain0::fault);
+  const bool fault_active = !digitalRead(powertrain0::fault);
+  
+  const int emojiX = T_Display_S3.width() - 8;
+  const int emojiY = 0;
   
   // Update state and handle fault transitions
   if (fault_active && !motorFaultLatched) {
     // Fault just occurred
     setFaultActiveLocked(true);
-    T_Display_S3.print(" ⚠️ ");
-    T_Display_S3.print(kMotorName);
+    T_Display_S3.fillRect(emojiX, emojiY, 8, 8, T_Display_S3.backgroundColor());
+    T_Display_S3.drawWarningEmoji(emojiX, emojiY);
     if (kDebugKeepMotorEnabled) {
-      T_Display_S3.println(" fault detected (debug override keeps motor enabled)");
+      Serial.println(String(kMotorName) + " fault detected (debug override keeps motor enabled)");
     } else {
-      T_Display_S3.println(" disabled due to electrical fault");
+      Serial.println(String(kMotorName) + " disabled due to electrical fault");
     }
     motorFaultLatched = true;
   } else if (!fault_active && motorFaultLatched) {
     // Fault just cleared
     setFaultActiveLocked(false);
-    T_Display_S3.print(" ✅ ");
-    T_Display_S3.print(kMotorName);
+    T_Display_S3.fillRect(emojiX, emojiY, 8, 8, T_Display_S3.backgroundColor());
+    T_Display_S3.drawCheckEmoji(emojiX, emojiY);
     if (kDebugKeepMotorEnabled) {
-      T_Display_S3.println(" fault cleared :D");
+      Serial.println(String(kMotorName) + " fault cleared :D");
     } else {
-      T_Display_S3.println(" re-enabled :D");
+      Serial.println(String(kMotorName) + " re-enabled :D");
     }
     motorFaultLatched = false;
   }

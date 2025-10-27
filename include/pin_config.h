@@ -29,7 +29,6 @@
 #define PIN_LCD_WR                   8
 #define PIN_TOUCH_RES                21
 #define PIN_LCD_RD                   9
-
 #define PIN_BUTTON_1                 0
 #define PIN_BUTTON_2                 14
 #define PIN_BAT_VOLT                 4
@@ -40,12 +39,10 @@
 #define PIN_SD_D0                    12
 
 /* Motor driver (SimpleFOC) */
-#define PIN_MOTOR_SDA                19
-#define PIN_MOTOR_SCL                20
+#define PIN_MOTOR_SDA                17
+#define PIN_MOTOR_SCL                18
 #define PIN_MOTOR_IN1                1
 #define PIN_MOTOR_IN2                2
 #define PIN_MOTOR_IN3                3
 #define PIN_MOTOR_ENABLE             21
 #define PIN_MOTOR_FAULT              16
-#define PIN_ENCODER_SCL              17
-#define PIN_ENCODER_SDA              18

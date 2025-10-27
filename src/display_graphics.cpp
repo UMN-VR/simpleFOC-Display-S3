@@ -5,6 +5,9 @@
 namespace {
 constexpr uint16_t kColorBlack = 0x0000u;
 constexpr uint16_t kColorWhite = 0xFFFFu;
+constexpr uint16_t kColorRed = 0xF800u;
+constexpr uint16_t kColorBlue = 0x001Fu;
+bool sensorConnected = true; // Tracks the current connection state of the AS5600 sensor
 }
 
 T_Display_S3_Class T_Display_S3;
@@ -178,4 +181,55 @@ void T_Display_S3_Class::setBrightness(uint8_t brightness) {
 
 uint8_t T_Display_S3_Class::brightness() const {
   return brightness_;
+}
+
+void T_Display_S3_Class::drawAngleIndicator(float angle_rad, bool isFailed) {
+  const int cx = 294;
+  const int cy = 25;
+  const int radius = 25;
+  const int inner_radius = radius - 3;
+
+  // BAD BAD BAD, CREATES A FLICKER
+  // fillArc(cx, cy, inner_radius, radius, 0, 360, background_color_);
+
+  // Check for state transition
+  if (isFailed && sensorConnected) {
+    // Transition: Connected -> Disconnected
+    sensorConnected = false;
+    Serial.println("AS5600 connection lost!");
+  } else if (!isFailed && !sensorConnected) {
+    // Transition: Disconnected -> Connected
+    sensorConnected = true;
+    Serial.println("AS5600 connection restored.");
+  }
+
+  if (isFailed) {
+    // Draw full red ring on failure
+    fillArc(cx, cy, inner_radius, radius, 0, 360, kColorRed);
+  } else {
+    // Convert to degrees
+    float angle_deg = angle_rad * 180.0f / PI;
+    // Draw red ring half
+    fillArc(cx, cy, inner_radius, radius, angle_deg - 90, angle_deg + 90, kColorRed);
+    // Draw blue ring half
+    fillArc(cx, cy, inner_radius, radius, angle_deg + 90, angle_deg + 270, kColorBlue);
+  }
+}
+
+void T_Display_S3_Class::drawWarningEmoji(int x, int y) {
+  const int size = 8;
+  // Draw yellow triangle
+  fillTriangle(x + size/2, y, x, y + size, x + size, y + size, TFT_YELLOW);
+  // Draw black !
+  drawLine(x + size/2, y + 3, x + size/2, y + 5, TFT_BLACK);
+  drawPixel(x + size/2, y + 7, TFT_BLACK);
+}
+
+void T_Display_S3_Class::drawCheckEmoji(int x, int y) {
+  const int size = 8;
+  // Draw green circle
+  fillCircle(x + size/2, y + size/2, size/2, TFT_GREEN);
+  // Draw white checkmark
+  drawLine(x + 1, y + 4, x + 3, y + 6, TFT_WHITE);
+  drawLine(x + 3, y + 6, x + 7, y + 2, TFT_WHITE);
 }
